@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="China Travel">
+  <meta name="theme-color" content="#ffffff">
+  <title>China Travel</title>
+  <style>
+    :root {
+      --bg:      #ffffff;
+      --bg2:     #f5f5f5;
+      --bg3:     #ebebeb;
+      --text:    #111111;
+      --text2:   #444444;
+      --muted:   #888888;
+      --border:  #e5e5e5;
+      --acc:     #c8102e;   /* China red — used only on SOS + active tab */
+      --radius:  12px;
+      --hdr:     52px;
+      --tab:     58px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html { background: #e8e8e8; }
+
+    body {
+      margin: 0;
+      background: var(--bg2);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ─── App shell ─────────────────────────────────────── */
+    #app {
+      max-width: 430px;
+      margin: 0 auto;
+      min-height: 100dvh;
+      background: var(--bg2);
+      box-shadow: 0 0 60px rgba(0,0,0,.08);
+      position: relative;
+    }
+
+    /* ─── Header ────────────────────────────────────────── */
+    .hdr {
+      position: fixed;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 100%; max-width: 430px;
+      height: calc(var(--hdr) + env(safe-area-inset-top));
+      padding-top: env(safe-area-inset-top);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding-left: 16px; padding-right: 16px;
+      gap: 10px;
+      z-index: 300;
+    }
+    .hdr-flag  { font-size: 22px; line-height: 1; }
+    .hdr-title { font-size: 17px; font-weight: 600; letter-spacing: -.3px; }
+    .hdr-badge {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--bg2);
+      padding: 3px 9px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+
+    /* ─── Content ───────────────────────────────────────── */
+    #content {
+      padding-top: calc(var(--hdr) + env(safe-area-inset-top));
+      padding-bottom: calc(var(--tab) + env(safe-area-inset-bottom) + 8px);
+    }
+
+    /* ─── Sections ──────────────────────────────────────── */
+    .sec { display: none; }
+    .sec.active { display: block; }
+
+    /* ─── Tab bar ───────────────────────────────────────── */
+    .tabbar {
+      position: fixed;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 100%; max-width: 430px;
+      height: calc(var(--tab) + env(safe-area-inset-bottom));
+      padding-bottom: env(safe-area-inset-bottom);
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      display: flex;
+      z-index: 300;
+    }
+    .tb {
+      flex: 1;
+      border: none; background: none;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 3px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      padding: 6px 0;
+    }
+    .tb-icon  { font-size: 19px; line-height: 1; }
+    .tb-label { font-size: 9px; font-weight: 500; color: var(--muted); letter-spacing: .2px; }
+    .tb.active .tb-label { color: var(--acc); }
+    .tb.sos-tab.active .tb-label { color: var(--acc); }
+
+    /* ─── Shared components ─────────────────────────────── */
+    .sec-hdr {
+      padding: 18px 16px 8px;
+      font-size: 11px; font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+    }
+
+    .card {
+      background: var(--bg);
+      border-radius: var(--radius);
+      margin: 0 12px 10px;
+      padding: 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px; border: none;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .btn-primary  { background: var(--text); color: #fff; }
+    .btn-primary:active { background: #333; }
+    .btn-secondary { background: var(--bg3); color: var(--text); }
+    .btn-secondary:active { background: #ddd; }
+    .btn-row { display: flex; gap: 10px; }
+
+    /* ─── Phrase list (iOS-Settings style rows) ─────────── */
+    .phrase-list {
+      background: var(--bg);
+      border-radius: var(--radius);
+      margin: 0 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    }
+    .phrase-row {
+      display: flex;
+      align-items: center;
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+    .phrase-row:last-child { border-bottom: none; }
+    .phrase-text { flex: 1; min-width: 0; }
+    .phrase-zh {
+      font-size: 22px; font-weight: 500; line-height: 1.2;
+      font-family: 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', system-ui;
+    }
+    .phrase-py { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .phrase-en { font-size: 12px; color: var(--text2); margin-top: 1px; }
+    .phrase-acts { display: flex; gap: 6px; flex-shrink: 0; }
+    .act-btn {
+      border: 1.5px solid var(--border); background: var(--bg);
+      border-radius: 8px; padding: 6px 10px;
+      font-size: 12px; font-weight: 500; color: var(--text2);
+      cursor: pointer; touch-action: manipulation;
+    }
+    .act-btn:active { background: var(--bg3); }
+    .act-show { background: var(--text); color: #fff; border-color: var(--text); }
+    .act-show:active { background: #333; }
+
+    /* ─── Search + chips ────────────────────────────────── */
+    .search-wrap { padding: 12px 12px 6px; }
+    .search-input {
+      width: 100%; background: var(--bg3); border: none;
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 15px; color: var(--text); outline: none;
+      -webkit-appearance: none;
+    }
+    .search-input::placeholder { color: var(--muted); }
+
+    .chips {
+      display: flex; gap: 8px;
+      padding: 6px 12px 12px;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .chips::-webkit-scrollbar { display: none; }
+    .chip {
+      flex-shrink: 0;
+      padding: 5px 13px; border-radius: 20px;
+      border: 1.5px solid var(--border); background: var(--bg);
+      font-size: 13px; font-weight: 500; color: var(--text2);
+      cursor: pointer; touch-action: manipulation;
+    }
+    .chip.active { background: var(--text); border-color: var(--text); color: #fff; }
+
+    /* ─── Shopping: sentence builder ────────────────────── */
+    .builder-card {
+      background: var(--bg);
+      border-radius: var(--radius);
+      margin: 12px 12px 0;
+      padding: 18px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    }
+    .builder-label {
+      font-size: 11px; font-weight: 600;
+      color: var(--muted); text-transform: uppercase;
+      letter-spacing: .7px; margin-bottom: 14px;
+    }
+    .qty-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+    .qty-btn {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 1.5px solid var(--border); background: var(--bg);
+      font-size: 22px; font-weight: 300; color: var(--text);
+      cursor: pointer; touch-action: manipulation;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .qty-btn:active { background: var(--bg3); }
+    .qty-num { font-size: 32px; font-weight: 700; min-width: 44px; text-align: center; }
+    .qty-label { font-size: 13px; color: var(--muted); }
+
+    .clf-wrap { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .clf-chip {
+      padding: 6px 11px; border-radius: 8px;
+      border: 1.5px solid var(--border); background: var(--bg2);
+      cursor: pointer; touch-action: manipulation; text-align: center;
+    }
+    .clf-zh  { font-size: 17px; font-family: 'PingFang SC', 'Hiragino Sans GB', system-ui; }
+    .clf-en  { font-size: 10px; color: var(--muted); display: block; }
+    .clf-chip.active { background: var(--text); border-color: var(--text); color: #fff; }
+    .clf-chip.active .clf-en { color: #aaa; }
+
+    .sent-display {
+      background: var(--bg2); border-radius: 10px;
+      padding: 16px; text-align: center; margin-bottom: 14px;
+    }
+    .sent-zh {
+      font-size: 28px; font-weight: 500; line-height: 1.3;
+      font-family: 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', system-ui;
+    }
+    .sent-py { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .sent-en { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+    /* ─── Shopping: bargaining grid ─────────────────────── */
+    .barg-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin: 0 12px;
+    }
+    .barg-card {
+      background: var(--bg); border-radius: var(--radius);
+      padding: 14px 10px; cursor: pointer;
+      touch-action: manipulation;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+      text-align: center;
+    }
+    .barg-card:active { background: var(--bg3); }
+    .barg-zh { font-size: 18px; font-family: 'PingFang SC', 'Hiragino Sans GB', system-ui; font-weight: 500; }
+    .barg-py { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .barg-en { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+    /* ─── Shopping: yuan row ────────────────────────────── */
+    .yuan-row {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg); border-radius: var(--radius);
+      margin: 10px 12px 0; padding: 14px 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    }
+    .yuan-lbl  { font-size: 14px; color: var(--text2); flex: 1; }
+    .yuan-inp  {
+      width: 74px; border: 1.5px solid var(--border);
+      border-radius: 8px; padding: 7px 8px;
+      font-size: 18px; font-weight: 700; text-align: center;
+      outline: none; -webkit-appearance: none;
+      color: var(--text);
+    }
+    .yuan-sym  { font-size: 16px; font-weight: 600; color: var(--text2); }
+    .yuan-btn  {
+      padding: 8px 14px; border-radius: 8px;
+      background: var(--text); color: #fff; border: none;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer; touch-action: manipulation;
+    }
+    .yuan-btn:active { background: #333; }
+
+    /* ─── Food: dietary grid ────────────────────────────── */
+    .diet-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin: 0 12px;
+    }
+    .diet-card {
+      background: var(--bg); border-radius: var(--radius);
+      padding: 14px 10px; cursor: pointer;
+      touch-action: manipulation;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+      text-align: center;
+    }
+    .diet-card:active { background: var(--bg3); }
+    .diet-icon { font-size: 22px; margin-bottom: 5px; }
+    .diet-zh { font-size: 17px; font-family: 'PingFang SC', 'Hiragino Sans GB', system-ui; font-weight: 500; line-height: 1.25; }
+    .diet-py { font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .diet-en { font-size: 10px; color: var(--text2); margin-top: 2px; }
+
+    /* ─── Transport: destination ────────────────────────── */
+    .dest-card {
+      background: var(--bg); border-radius: var(--radius);
+      margin: 12px 12px 0; padding: 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    }
+    .dest-note { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+    .dest-inp  {
+      width: 100%; border: 1.5px solid var(--border);
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 15px; color: var(--text); outline: none;
+      -webkit-appearance: none; background: var(--bg2);
+      margin-bottom: 10px;
+    }
+    .dest-show {
+      background: var(--bg2); border-radius: 10px;
+      padding: 14px; text-align: center; margin-bottom: 12px;
+    }
+    .dest-prefix { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .dest-zh {
+      font-size: 24px; font-family: 'PingFang SC', 'Hiragino Sans GB', system-ui;
+      font-weight: 500; min-height: 36px; line-height: 1.3;
+    }
+
+    /* ─── Tips ──────────────────────────────────────────── */
+    .tip-card {
+      background: var(--bg); border-radius: var(--radius);
+      margin: 0 12px 10px; padding: 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+      display: flex; gap: 14px;
+    }
+    .tip-icon  { font-size: 26px; flex-shrink: 0; margin-top: 1px; line-height: 1; }
+    .tip-title { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
+    .tip-body  { font-size: 13px; color: var(--text2); line-height: 1.55; white-space: pre-line; }
+
+    /* ─── SOS ───────────────────────────────────────────── */
+    .dial-row {
+      display: flex; gap: 10px;
+      margin: 14px 12px 0;
+    }
+    .dial-btn {
+      flex: 1;
+      background: var(--acc); color: #fff;
+      border: none; border-radius: var(--radius);
+      padding: 14px 4px;
+      font-size: 22px; font-weight: 800;
+      cursor: pointer; touch-action: manipulation;
+      text-align: center; text-decoration: none;
+      display: block;
+    }
+    .dial-btn small { display: block; font-size: 11px; font-weight: 400; margin-top: 2px; opacity: .85; }
+    .dial-btn:active { opacity: .8; }
+
+    .sos-card {
+      background: var(--bg); border-radius: var(--radius);
+      margin: 10px 12px 0; padding: 16px;
+      cursor: pointer; touch-action: manipulation;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+      display: flex; align-items: center; gap: 14px;
+    }
+    .sos-card:active { background: var(--bg3); }
+    .sos-text { flex: 1; }
+    .sos-zh { font-size: 24px; font-family: 'PingFang SC', 'Hiragino Sans GB', system-ui; font-weight: 600; }
+    .sos-py  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .sos-en  { font-size: 12px; color: var(--text2); margin-top: 2px; }
+    .sos-arr { font-size: 20px; color: var(--border); flex-shrink: 0; }
+
+    /* ─── Fullscreen overlay ────────────────────────────── */
+    #overlay {
+      position: fixed; inset: 0;
+      background: #000; z-index: 900;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 40px 28px;
+      cursor: pointer;
+      opacity: 0; pointer-events: none;
+      transition: opacity .18s ease;
+    }
+    #overlay.active { opacity: 1; pointer-events: auto; }
+    #overlay .ol-close {
+      position: absolute;
+      top: calc(18px + env(safe-area-inset-top));
+      right: 20px;
+      color: #555; font-size: 28px;
+      cursor: pointer; line-height: 1;
+    }
+    #overlay .ol-zh {
+      color: #fff;
+      font-size: clamp(44px, 13vw, 96px);
+      font-family: 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', system-ui;
+      font-weight: 500; text-align: center; line-height: 1.3;
+      white-space: pre-line;
+    }
+    #overlay .ol-py {
+      color: #888; font-size: clamp(17px, 4vw, 26px);
+      margin-top: 20px; text-align: center;
+      letter-spacing: .4px;
+    }
+    #overlay .ol-en {
+      color: #555; font-size: clamp(13px, 3vw, 18px);
+      margin-top: 8px; text-align: center;
+    }
+    #overlay .ol-hint {
+      position: absolute;
+      bottom: calc(22px + env(safe-area-inset-bottom));
+      color: #333; font-size: 12px; letter-spacing: .3px;
+    }
+
+    /* ─── Toast ─────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: calc(var(--tab) + env(safe-area-inset-bottom) + 14px);
+      left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: #111; color: #fff;
+      padding: 8px 18px; border-radius: 20px;
+      font-size: 13px; font-weight: 500;
+      opacity: 0; pointer-events: none;
+      transition: opacity .18s, transform .18s;
+      white-space: nowrap; z-index: 500;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ─── Misc ──────────────────────────────────────────── */
+    .empty { padding: 40px 16px; text-align: center; color: var(--muted); font-size: 14px; }
+    .mb12  { margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Header -->
+  <header class="hdr">
+    <span class="hdr-flag">🇨🇳</span>
+    <span class="hdr-title">China Travel</span>
+    <span class="hdr-badge">Offline</span>
+  </header>
+
+  <!-- Content -->
+  <div id="content">
+
+    <!-- ══ PHRASES ══════════════════════════════════════════ -->
+    <section class="sec active" id="sec-phrases">
+      <div class="search-wrap">
+        <input class="search-input" type="search" id="phraseSearch"
+          placeholder="Search phrases…" oninput="filterPhrases()"
+          autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="chips" id="catChips">
+        <span class="chip active" data-cat="all"       onclick="setChip(this,'all')">All</span>
+        <span class="chip"        data-cat="greeting"  onclick="setChip(this,'greeting')">Greetings</span>
+        <span class="chip"        data-cat="shopping"  onclick="setChip(this,'shopping')">Shopping</span>
+        <span class="chip"        data-cat="food"      onclick="setChip(this,'food')">Food</span>
+        <span class="chip"        data-cat="transport" onclick="setChip(this,'transport')">Transport</span>
+        <span class="chip"        data-cat="emergency" onclick="setChip(this,'emergency')">Emergency</span>
+      </div>
+      <div class="phrase-list mb12" id="phraseList"></div>
+    </section>
+
+    <!-- ══ SHOPPING ═════════════════════════════════════════ -->
+    <section class="sec" id="sec-shop">
+      <div class="sec-hdr">Sentence Builder</div>
+      <div class="builder-card">
+        <div class="builder-label">I want this for…</div>
+        <div class="qty-row">
+          <button class="qty-btn" onclick="changeQty(-1)">−</button>
+          <div class="qty-num" id="qtyNum">1</div>
+          <button class="qty-btn" onclick="changeQty(1)">+</button>
+          <span class="qty-label">pieces</span>
+        </div>
+        <div class="clf-wrap" id="clfWrap"></div>
+        <div class="sent-display">
+          <div class="sent-zh" id="sentZh"></div>
+          <div class="sent-py" id="sentPy"></div>
+          <div class="sent-en" id="sentEn"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary"   onclick="showSentence()">Show to local</button>
+          <button class="btn btn-secondary" onclick="copySentence()">Copy</button>
+        </div>
+      </div>
+
+      <div class="sec-hdr">Bargaining Quick-Tap</div>
+      <div class="barg-grid" id="bargGrid"></div>
+
+      <div class="sec-hdr">Yuan Offer</div>
+      <div class="yuan-row">
+        <span class="yuan-lbl">I only have</span>
+        <input class="yuan-inp" type="number" id="yuanInp" value="50" min="1" max="9999">
+        <span class="yuan-sym">¥</span>
+        <button class="yuan-btn" onclick="showYuan()">Show</button>
+      </div>
+    </section>
+
+    <!-- ══ FOOD ══════════════════════════════════════════════ -->
+    <section class="sec" id="sec-food">
+      <div class="sec-hdr">Dietary — Tap to Show</div>
+      <div class="diet-grid" id="dietGrid"></div>
+      <div class="sec-hdr">At the Table</div>
+      <div class="phrase-list mb12" id="foodList"></div>
+    </section>
+
+    <!-- ══ TRANSPORT ════════════════════════════════════════ -->
+    <section class="sec" id="sec-go">
+      <div class="sec-hdr">Show Destination to Driver</div>
+      <div class="dest-card">
+        <div class="dest-note">Type your destination — show your phone to the driver</div>
+        <input class="dest-inp" type="text" id="destInp"
+          placeholder="e.g. Beijing Capital Airport"
+          oninput="updateDest()" autocomplete="off">
+        <div class="dest-show">
+          <div class="dest-prefix">请送我到</div>
+          <div class="dest-zh" id="destZh">___</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="showDest()">Show to driver</button>
+        </div>
+      </div>
+
+      <div class="sec-hdr">Common Places</div>
+      <div class="barg-grid" id="destGrid"></div>
+
+      <div class="sec-hdr">Transport Phrases</div>
+      <div class="phrase-list mb12" id="goList"></div>
+    </section>
+
+    <!-- ══ TIPS ══════════════════════════════════════════════ -->
+    <section class="sec" id="sec-tips">
+      <div class="sec-hdr" style="padding-top:16px">Before &amp; During Your Trip</div>
+      <div id="tipsList"></div>
+    </section>
+
+    <!-- ══ SOS ═══════════════════════════════════════════════ -->
+    <section class="sec" id="sec-sos">
+      <div class="sec-hdr" style="padding-top:16px">Emergency Dial</div>
+      <div class="dial-row">
+        <a class="dial-btn" href="tel:110">110<small>Police</small></a>
+        <a class="dial-btn" href="tel:120">120<small>Ambulance</small></a>
+        <a class="dial-btn" href="tel:119">119<small>Fire</small></a>
+      </div>
+      <div class="sec-hdr" style="padding-top:18px">Tap to Show</div>
+      <div id="sosList"></div>
+    </section>
+
+  </div><!-- #content -->
+
+  <!-- Tab Bar -->
+  <nav class="tabbar">
+    <button class="tb active"   onclick="showTab('phrases',this)"><span class="tb-icon">🗣️</span><span class="tb-label">Phrases</span></button>
+    <button class="tb"          onclick="showTab('shop',this)">   <span class="tb-icon">🛒</span><span class="tb-label">Shopping</span></button>
+    <button class="tb"          onclick="showTab('food',this)">   <span class="tb-icon">🍜</span><span class="tb-label">Food</span></button>
+    <button class="tb"          onclick="showTab('go',this)">     <span class="tb-icon">🚇</span><span class="tb-label">Transport</span></button>
+    <button class="tb"          onclick="showTab('tips',this)">   <span class="tb-icon">💡</span><span class="tb-label">Tips</span></button>
+    <button class="tb sos-tab"  onclick="showTab('sos',this)">    <span class="tb-icon">🆘</span><span class="tb-label">SOS</span></button>
+  </nav>
+
+</div><!-- #app -->
+
+<!-- Fullscreen overlay -->
+<div id="overlay" onclick="hideOverlay()">
+  <span class="ol-close" onclick="hideOverlay()">✕</span>
+  <div class="ol-zh"  id="olZh"></div>
+  <div class="ol-py"  id="olPy"></div>
+  <div class="ol-en"  id="olEn"></div>
+  <div class="ol-hint">Tap anywhere to close</div>
+</div>
+
+<!-- Toast -->
+<div id="toast">Copied!</div>
+
+<script>
+// ─── Data ────────────────────────────────────────────────────────────────────
+
+const PHRASES = [
+  // Greetings
+  { zh:'你好',             py:'Nǐ hǎo',                    en:'Hello',                    cat:'greeting'  },
+  { zh:'谢谢',             py:'Xièxiè',                    en:'Thank you',                cat:'greeting'  },
+  { zh:'不客气',           py:'Bù kèqì',                   en:"You're welcome",            cat:'greeting'  },
+  { zh:'对不起',           py:'Duìbuqǐ',                   en:'Sorry / Excuse me',        cat:'greeting'  },
+  { zh:'没关系',           py:'Méi guānxi',                en:"No worries",               cat:'greeting'  },
+  { zh:'再见',             py:'Zàijiàn',                   en:'Goodbye',                  cat:'greeting'  },
+  { zh:'好的',             py:'Hǎo de',                    en:'Okay / Alright',           cat:'greeting'  },
+  { zh:'请',               py:'Qǐng',                      en:'Please',                   cat:'greeting'  },
+  { zh:'我不懂',           py:'Wǒ bù dǒng',                en:"I don't understand",        cat:'greeting'  },
+  { zh:'请说慢一点',       py:'Qǐng shuō màn yīdiǎn',     en:'Please speak slower',      cat:'greeting'  },
+  { zh:'你会说英语吗？',   py:'Nǐ huì shuō Yīngyǔ ma?',   en:'Do you speak English?',    cat:'greeting'  },
+  { zh:'我是外国人',       py:'Wǒ shì wàiguórén',          en:"I'm a foreigner",           cat:'greeting'  },
+  // Shopping
+  { zh:'多少钱？',         py:'Duōshao qián?',             en:'How much?',                cat:'shopping'  },
+  { zh:'太贵了',           py:'Tài guì le',                en:'Too expensive',            cat:'shopping'  },
+  { zh:'能便宜点吗？',     py:'Néng piányí diǎn ma?',      en:'Can you go cheaper?',      cat:'shopping'  },
+  { zh:'我要这个',         py:'Wǒ yào zhège',              en:'I want this',              cat:'shopping'  },
+  { zh:'不要了',           py:'Bù yào le',                 en:'Never mind',               cat:'shopping'  },
+  { zh:'可以刷卡吗？',     py:'Kěyǐ shuākǎ ma?',           en:'Can I pay by card?',       cat:'shopping'  },
+  { zh:'我只是看看',       py:'Wǒ zhǐshì kànkàn',          en:'Just looking',             cat:'shopping'  },
+  { zh:'有没有收据？',     py:'Yǒu méiyǒu shōujù?',        en:'Do you have a receipt?',   cat:'shopping'  },
+  // Food
+  { zh:'我不吃肉',         py:'Wǒ bù chī ròu',             en:"I don't eat meat",          cat:'food'      },
+  { zh:'我吃素',           py:'Wǒ chī sù',                 en:"I'm vegetarian",            cat:'food'      },
+  { zh:'不要辣',           py:'Bù yào là',                 en:'No spicy please',          cat:'food'      },
+  { zh:'微辣',             py:'Wēi là',                    en:'Mildly spicy',             cat:'food'      },
+  { zh:'不要香菜',         py:'Bù yào xiāngcài',           en:'No cilantro/coriander',    cat:'food'      },
+  { zh:'好吃！',           py:'Hǎo chī!',                  en:'Delicious!',               cat:'food'      },
+  { zh:'买单',             py:'Mǎidān',                    en:'Bill please',              cat:'food'      },
+  { zh:'打包',             py:'Dǎbāo',                     en:'Takeaway / pack to go',    cat:'food'      },
+  { zh:'不加冰',           py:'Bù jiā bīng',               en:'No ice',                   cat:'food'      },
+  { zh:'热水',             py:'Rè shuǐ',                   en:'Hot water (free in restaurants)', cat:'food' },
+  // Transport
+  { zh:'地铁站在哪里？',   py:'Dìtiě zhàn zài nǎlǐ?',     en:'Where is the subway?',     cat:'transport' },
+  { zh:'机场',             py:'Jīchǎng',                   en:'Airport',                  cat:'transport' },
+  { zh:'火车站',           py:'Huǒchē zhàn',               en:'Train station',            cat:'transport' },
+  { zh:'停这里',           py:'Tíng zhèlǐ',                en:'Stop here',                cat:'transport' },
+  { zh:'请帮我叫出租车',   py:'Qǐng bāng wǒ jiào chūzū chē', en:'Please call me a taxi', cat:'transport' },
+  { zh:'洗手间在哪里？',   py:'Xǐshǒujiān zài nǎlǐ?',     en:'Where is the bathroom?',   cat:'transport' },
+  { zh:'出口',             py:'Chūkǒu',                    en:'Exit',                     cat:'transport' },
+  { zh:'入口',             py:'Rùkǒu',                     en:'Entrance',                 cat:'transport' },
+  // Emergency
+  { zh:'救命！',           py:'Jiùmìng!',                  en:'Help!',                    cat:'emergency' },
+  { zh:'请叫救护车',       py:'Qǐng jiào jiùhùchē',        en:'Call an ambulance',        cat:'emergency' },
+  { zh:'请叫警察',         py:'Qǐng jiào jǐngchá',         en:'Call the police',          cat:'emergency' },
+  { zh:'我迷路了',         py:'Wǒ mílù le',                en:"I'm lost",                  cat:'emergency' },
+  { zh:'我需要医院',       py:'Wǒ xūyào yīyuàn',           en:'I need a hospital',        cat:'emergency' },
+  { zh:'我的东西被偷了',   py:'Wǒ de dōngxi bèi tōu le',  en:'My things were stolen',    cat:'emergency' },
+  { zh:'我头痛',           py:'Wǒ tóutòng',                en:'I have a headache',        cat:'emergency' },
+  { zh:'我肚子痛',         py:'Wǒ dùzi tòng',              en:'I have a stomachache',     cat:'emergency' },
+];
+
+const CLASSIFIERS = [
+  { zh:'个', py:'gè',     en:'piece'    },
+  { zh:'件', py:'jiàn',   en:'clothing' },
+  { zh:'瓶', py:'píng',   en:'bottle'   },
+  { zh:'份', py:'fèn',    en:'portion'  },
+  { zh:'杯', py:'bēi',    en:'cup'      },
+  { zh:'斤', py:'jīn',    en:'500g'     },
+  { zh:'张', py:'zhāng',  en:'ticket'   },
+];
+
+const BARGAINING = [
+  { zh:'多少钱？',     py:'Duōshao qián?',       en:'How much?'      },
+  { zh:'太贵了',       py:'Tài guì le',           en:'Too expensive'  },
+  { zh:'能便宜点吗？', py:'Néng piányí diǎn ma?', en:'Any cheaper?'   },
+  { zh:'不要了',       py:'Bù yào le',            en:'Never mind'     },
+  { zh:'我要这个',     py:'Wǒ yào zhège',         en:'I want this'    },
+  { zh:'可以扫码吗？', py:'Kěyǐ sǎo mǎ ma?',      en:'Can I scan QR?' },
+];
+
+const DIET = [
+  { icon:'🥩', zh:'我不吃肉',       py:'Wǒ bù chī ròu',           en:'No meat'          },
+  { icon:'🌿', zh:'我吃素',         py:'Wǒ chī sù',               en:'Vegetarian'       },
+  { icon:'🌶️', zh:'不要辣',         py:'Bù yào là',               en:'No spicy'         },
+  { icon:'🌿', zh:'不要香菜',       py:'Bù yào xiāngcài',         en:'No cilantro'      },
+  { icon:'🥛', zh:'我对牛奶过敏',   py:'Wǒ duì niúnǎi guòmǐn',   en:'Lactose allergy'  },
+  { icon:'🥜', zh:'我对坚果过敏',   py:'Wǒ duì jiānguǒ guòmǐn',  en:'Nut allergy'      },
+  { icon:'🍤', zh:'我不吃海鲜',     py:'Wǒ bù chī hǎixiān',      en:'No seafood'       },
+  { icon:'🐷', zh:'我不吃猪肉',     py:'Wǒ bù chī zhūròu',       en:'No pork'          },
+];
+
+const FOOD_PHRASES = [
+  { zh:'来一份这个',       py:'Lái yī fèn zhège',       en:'One portion of this'    },
+  { zh:'好吃！',           py:'Hǎo chī!',               en:'Delicious!'             },
+  { zh:'买单',             py:'Mǎidān',                 en:'Bill please'            },
+  { zh:'打包',             py:'Dǎbāo',                  en:'Takeaway / pack to go'  },
+  { zh:'加冰',             py:'Jiā bīng',               en:'With ice'               },
+  { zh:'不加冰',           py:'Bù jiā bīng',            en:'No ice'                 },
+  { zh:'热水',             py:'Rè shuǐ',                en:'Hot water'              },
+  { zh:'微辣',             py:'Wēi là',                 en:'Mildly spicy'           },
+  { zh:'好的，就这些',     py:'Hǎo de, jiù zhèxiē',    en:"Okay, that's all"        },
+  { zh:'服务员！',         py:'Fúwùyuán!',              en:'Waiter / Excuse me!'    },
+];
+
+const DEST_QUICK = [
+  { zh:'机场',   py:'Jīchǎng',       en:'Airport'        },
+  { zh:'火车站', py:'Huǒchē zhàn',   en:'Train Station'  },
+  { zh:'地铁站', py:'Dìtiě zhàn',    en:'Subway Station' },
+  { zh:'医院',   py:'Yīyuàn',        en:'Hospital'       },
+  { zh:'酒店',   py:'Jiǔdiàn',       en:'Hotel'          },
+  { zh:'市中心', py:'Shì zhōngxīn',  en:'City Center'    },
+];
+
+const GO_PHRASES = [
+  { zh:'停这里',           py:'Tíng zhèlǐ',                     en:'Stop here'                 },
+  { zh:'请帮我叫出租车',   py:'Qǐng bāng wǒ jiào chūzū chē',   en:'Please call me a taxi'     },
+  { zh:'出口在哪里？',     py:'Chūkǒu zài nǎlǐ?',              en:'Where is the exit?'        },
+  { zh:'洗手间在哪里？',   py:'Xǐshǒujiān zài nǎlǐ?',          en:'Where is the bathroom?'    },
+  { zh:'我要去哪里换乘？', py:'Wǒ yào qù nǎlǐ huànchéng?',     en:'Where do I transfer?'      },
+  { zh:'多少站？',         py:'Duōshao zhàn?',                  en:'How many stops?'           },
+  { zh:'帮我叫滴滴',       py:'Bāng wǒ jiào Dīdī',             en:'Help me call a DiDi'       },
+];
+
+const SOS_PHRASES = [
+  { zh:'救命！',               py:'Jiùmìng!',                        en:'Help!'                              },
+  { zh:'请叫救护车',           py:'Qǐng jiào jiùhùchē',              en:'Call an ambulance'                  },
+  { zh:'请叫警察',             py:'Qǐng jiào jǐngchá',               en:'Call the police'                    },
+  { zh:'我迷路了',             py:'Wǒ mílù le',                      en:"I'm lost"                            },
+  { zh:'我需要医院',           py:'Wǒ xūyào yīyuàn',                 en:'I need a hospital'                  },
+  { zh:'我的东西被偷了',       py:'Wǒ de dōngxi bèi tōu le',        en:'My things were stolen'              },
+  { zh:'请带我去最近的医院',   py:'Qǐng dài wǒ qù zuìjìn de yīyuàn', en:'Take me to the nearest hospital'   },
+  { zh:'我头痛',               py:'Wǒ tóutòng',                      en:'I have a headache'                  },
+  { zh:'我肚子痛',             py:'Wǒ dùzi tòng',                    en:'I have a stomachache'               },
+  { zh:'我有护照',             py:'Wǒ yǒu hùzhào',                   en:'I have a passport'                  },
+];
+
+const TIPS = [
+  {
+    icon:'💳', title:'Payment',
+    body:'WeChat Pay (微信支付) and Alipay (支付宝) accept foreign Visa/Mastercard now. Link in the app or at the airport before exploring. QR code payment is used everywhere — even tiny street stalls. Cash (RMB ¥) still works as backup.',
+  },
+  {
+    icon:'📱', title:'Apps to Install First',
+    body:'Download BEFORE arriving — availability differs inside China:\n• WeChat — messaging + payment\n• Alipay — payment + services\n• DiDi — ride-hailing (has English mode)\n• VPN app (ExpressVPN / NordVPN)\n• Apple Maps or Maps.me (offline maps)',
+  },
+  {
+    icon:'🌐', title:'Internet & VPN',
+    body:'Google, YouTube, Instagram, WhatsApp, and most Western services are blocked in China. Download a VPN before arriving — it won\'t work after you land without one. Buy a local SIM at the airport (China Unicom / China Telecom counters) for mobile data.',
+  },
+  {
+    icon:'🗺️', title:'Maps & Navigation',
+    body:'Google Maps is inaccurate in China. Better options:\n• Apple Maps — reliable, transit + walking\n• Maps.me — download offline maps before arriving\n• Gaode (高德地图) — used by DiDi, most accurate',
+  },
+  {
+    icon:'🚕', title:'DiDi (Chinese Uber)',
+    body:'DiDi is the main ride-hailing app. Set it to English in Settings. Steps: open DiDi → set pickup point → type destination (English autocompletes) → confirm → see driver\'s car & plate number. Most drivers won\'t speak English — just show destination on screen.',
+  },
+  {
+    icon:'🚇', title:'Subway Tips',
+    body:'Major city subways (Beijing, Shanghai, Guangzhou) have English signs and announcements. Buy a single ticket at machines (select English), or scan WeChat/Alipay at the turnstile — no ticket needed. Security scan is required at all station entrances.',
+  },
+  {
+    icon:'🤝', title:'Etiquette',
+    body:'• No tipping — it can seem rude in restaurants\n• Bargaining is expected in markets & street shops, NOT in malls\n• Queue at subway door markings\n• Loud phone calls are normal — not considered rude\n• Pointing is fine\n• Spitting outdoors is common (urban areas less so)',
+  },
+  {
+    icon:'🍵', title:'Food & Water',
+    body:'Tap water is NOT safe to drink — use bottled water. Restaurants always have free hot water (热水 rè shuǐ) — just ask. Street food is generally safe. Major cities label menus with pictures — just point.',
+  },
+  {
+    icon:'🏥', title:'Health & Emergency',
+    body:'📞 110 — Police\n📞 120 — Ambulance\n📞 119 — Fire\n\nPharmacies (药店 Yàodiàn) are everywhere, open late. Carry your passport. Major city hospitals have international patient departments with English-speaking staff.',
+  },
+  {
+    icon:'🛂', title:'Customs & Entry',
+    body:'Always carry your passport — ID checks happen at hotels, train stations, and some tourist sites. Hotel check-in requires passport. Keep your entry card (if given at border) safe — you need it at departure.',
+  },
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+
+let activeCat = 'all';
+let qty       = 1;
+let clfIdx    = 0;
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+
+function init() {
+  renderPhrases();
+  renderClassifiers();
+  buildSentence();
+  renderBargaining();
+  renderDiet();
+  renderFoodPhrases();
+  renderDestQuick();
+  renderGoList();
+  renderSOS();
+  renderTips();
+}
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
+
+function showTab(id, btn) {
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tb').forEach(b  => b.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  window.scrollTo({ top: 0 });
+}
+
+// ─── Phrases ──────────────────────────────────────────────────────────────────
+
+function setChip(el, cat) {
+  activeCat = cat;
+  document.querySelectorAll('#catChips .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderPhrases();
+}
+
+function filterPhrases() { renderPhrases(); }
+
+function renderPhrases() {
+  const q  = (document.getElementById('phraseSearch').value || '').toLowerCase().trim();
+  const list = PHRASES.filter(p => {
+    const catOk = activeCat === 'all' || p.cat === activeCat;
+    const qOk   = !q || p.zh.includes(q) || p.py.toLowerCase().includes(q) || p.en.toLowerCase().includes(q);
+    return catOk && qOk;
+  });
+  const el = document.getElementById('phraseList');
+  el.innerHTML = list.length
+    ? list.map(p => phraseRowHTML(p.zh, p.py, p.en)).join('')
+    : '<div class="empty">No phrases found</div>';
+}
+
+function phraseRowHTML(zh, py, en) {
+  const z = x(zh), p2 = x(py), e = x(en);
+  return `<div class="phrase-row">
+    <div class="phrase-text">
+      <div class="phrase-zh">${zh}</div>
+      <div class="phrase-py">${py}</div>
+      <div class="phrase-en">${en}</div>
+    </div>
+    <div class="phrase-acts">
+      <button class="act-btn act-show" onclick="showOverlay('${z}','${p2}','${e}')">Show</button>
+      <button class="act-btn"          onclick="copyText('${z}')">Copy</button>
+    </div>
+  </div>`;
+}
+
+// ─── Shopping ─────────────────────────────────────────────────────────────────
+
+function renderClassifiers() {
+  document.getElementById('clfWrap').innerHTML = CLASSIFIERS.map((c, i) =>
+    `<div class="clf-chip${i===0?' active':''}" onclick="setCLF(${i},this)">
+      <span class="clf-zh">${c.zh}</span>
+      <span class="clf-en">${c.en}</span>
+    </div>`
+  ).join('');
+}
+
+function setCLF(i, el) {
+  clfIdx = i;
+  document.querySelectorAll('.clf-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  buildSentence();
+}
+
+function changeQty(d) {
+  qty = Math.max(1, Math.min(99, qty + d));
+  document.getElementById('qtyNum').textContent = qty;
+  buildSentence();
+}
+
+function buildSentence() {
+  const c  = CLASSIFIERS[clfIdx];
+  const zh = `我要这个，${qty}${c.zh}`;
+  const py = `Wǒ yào zhège, ${qty} ${c.py}`;
+  const en = `I want this — ${qty} ${c.en}(s)`;
+  document.getElementById('sentZh').textContent = zh;
+  document.getElementById('sentPy').textContent = py;
+  document.getElementById('sentEn').textContent = en;
+}
+
+function showSentence() {
+  showOverlay(
+    document.getElementById('sentZh').textContent,
+    document.getElementById('sentPy').textContent,
+    document.getElementById('sentEn').textContent
+  );
+}
+
+function copySentence() { copyText(document.getElementById('sentZh').textContent); }
+
+function renderBargaining() {
+  document.getElementById('bargGrid').innerHTML = BARGAINING.map(b =>
+    `<div class="barg-card" onclick="showOverlay('${x(b.zh)}','${x(b.py)}','${x(b.en)}')">
+      <div class="barg-zh">${b.zh}</div>
+      <div class="barg-py">${b.py}</div>
+      <div class="barg-en">${b.en}</div>
+    </div>`
+  ).join('');
+}
+
+function showYuan() {
+  const v = document.getElementById('yuanInp').value || '0';
+  showOverlay(`我只有${v}元`, `Wǒ zhǐ yǒu ${v} yuán`, `I only have ¥${v}`);
+}
+
+// ─── Food ─────────────────────────────────────────────────────────────────────
+
+function renderDiet() {
+  document.getElementById('dietGrid').innerHTML = DIET.map(d =>
+    `<div class="diet-card" onclick="showOverlay('${x(d.zh)}','${x(d.py)}','${x(d.en)}')">
+      <div class="diet-icon">${d.icon}</div>
+      <div class="diet-zh">${d.zh}</div>
+      <div class="diet-py">${d.py}</div>
+      <div class="diet-en">${d.en}</div>
+    </div>`
+  ).join('');
+}
+
+function renderFoodPhrases() {
+  document.getElementById('foodList').innerHTML = FOOD_PHRASES.map(p =>
+    phraseRowHTML(p.zh, p.py, p.en)
+  ).join('');
+}
+
+// ─── Transport ────────────────────────────────────────────────────────────────
+
+function updateDest() {
+  const v = document.getElementById('destInp').value.trim();
+  document.getElementById('destZh').textContent = v || '___';
+}
+
+function showDest() {
+  const v = document.getElementById('destInp').value.trim();
+  if (!v) { toast('Enter a destination first'); return; }
+  showOverlay(`请送我到\n${v}`, '', 'Please take me to this destination');
+}
+
+function renderDestQuick() {
+  document.getElementById('destGrid').innerHTML = DEST_QUICK.map(d =>
+    `<div class="barg-card" onclick="showOverlay('${x(d.zh)}','${x(d.py)}','${x(d.en)}')">
+      <div class="barg-zh">${d.zh}</div>
+      <div class="barg-py">${d.py}</div>
+      <div class="barg-en">${d.en}</div>
+    </div>`
+  ).join('');
+}
+
+function renderGoList() {
+  document.getElementById('goList').innerHTML = GO_PHRASES.map(p =>
+    phraseRowHTML(p.zh, p.py, p.en)
+  ).join('');
+}
+
+// ─── SOS ──────────────────────────────────────────────────────────────────────
+
+function renderSOS() {
+  document.getElementById('sosList').innerHTML = SOS_PHRASES.map(p =>
+    `<div class="sos-card" onclick="showOverlay('${x(p.zh)}','${x(p.py)}','${x(p.en)}')">
+      <div class="sos-text">
+        <div class="sos-zh">${p.zh}</div>
+        <div class="sos-py">${p.py}</div>
+        <div class="sos-en">${p.en}</div>
+      </div>
+      <div class="sos-arr">›</div>
+    </div>`
+  ).join('');
+}
+
+// ─── Tips ─────────────────────────────────────────────────────────────────────
+
+function renderTips() {
+  document.getElementById('tipsList').innerHTML = TIPS.map(t =>
+    `<div class="tip-card">
+      <div class="tip-icon">${t.icon}</div>
+      <div>
+        <div class="tip-title">${t.title}</div>
+        <div class="tip-body">${t.body}</div>
+      </div>
+    </div>`
+  ).join('');
+}
+
+// ─── Overlay ──────────────────────────────────────────────────────────────────
+
+function showOverlay(zh, py, en) {
+  document.getElementById('olZh').textContent = zh;
+  document.getElementById('olPy').textContent = py;
+  document.getElementById('olEn').textContent = en;
+  document.getElementById('overlay').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function hideOverlay() {
+  document.getElementById('overlay').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+// ─── Copy / Toast ─────────────────────────────────────────────────────────────
+
+function copyText(text) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
+  } else {
+    legacyCopy(text);
+  }
+  toast('Copied!');
+}
+
+function legacyCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  Object.assign(ta.style, { position:'fixed', opacity:'0', top:'0', left:'0' });
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { document.execCommand('copy'); } catch(_) {}
+  document.body.removeChild(ta);
+}
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ─── Escape helper (for inline onclick strings) ───────────────────────────────
+
+function x(s) {
+  return String(s)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g,  "\\'")
+    .replace(/"/g,  '&quot;')
+    .replace(/\n/g, '\\n');
+}
+
+// ─── Keyboard ─────────────────────────────────────────────────────────────────
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') hideOverlay();
+});
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+
+init();
+</script>
+</body>
+</html>
