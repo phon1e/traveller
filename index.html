@@ -850,8 +850,11 @@ function changeQty(d) {
 
 function buildSentence() {
   const c  = CLASSIFIERS[clfIdx];
-  const zh = `我要这个，${qty}${c.zh}`;
-  const py = `Wǒ yào zhège, ${qty} ${c.py}`;
+  // Before a classifier, "two" is 两 (liǎng), never 2/二
+  const zhQty = qty === 2 ? '两' : qty;
+  const pyQty = qty === 2 ? 'liǎng' : qty;
+  const zh = `我要这个，${zhQty}${c.zh}`;
+  const py = `Wǒ yào zhège, ${pyQty} ${c.py}`;
   const en = `I want this — ${qty} ${c.en}(s)`;
   document.getElementById('sentZh').textContent = zh;
   document.getElementById('sentPy').textContent = py;
